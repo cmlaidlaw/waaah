@@ -1357,7 +1357,7 @@ function initAudio() {
 
 	} catch ( e ) {
 
-		error( 'Your browser does not appear to support the HTML5 Web Audio API.' );
+		error( 'Your browser does not appear to support the HTML5 Web Audio API. WE ARE ALL ANGELS HERE has been tested as working in recent versions of Firefox, Chrome and desktop Safari.' );
 
 	}
 
@@ -1379,12 +1379,13 @@ function initCanvas() {
 
 	} catch ( e ) {
 
-		error( 'Your browser does not appear to support the HTML5 &lt;canvas&gt; element.' );
+		error( 'Your browser does not appear to support the HTML5 &lt;canvas&gt; element. WE ARE ALL ANGELS HERE has been tested as working in recent versions of Firefox, Chrome and desktop Safari.' );
 
 	}
 
-	window.CANVAS_WIDTH = canvas.width = window.innerWidth;
-	window.CANVAS_HEIGHT = canvas.height = window.innerHeight;
+	//fix for iOS not reporting good values for window.inner(Width|Height)
+	window.CANVAS_WIDTH = canvas.width = ( window.innerWidth > 0 ) ? window.innerWidth : screen.width;
+	window.CANVAS_HEIGHT = canvas.height = ( window.innerHeight > 0 ) ? window.innerHeight : screen.height;
 
 	window.BACKGROUND_RED = 65;
 	window.BACKGROUND_GREEN = 115;
