@@ -5,4 +5,4 @@ Psychadelic Gardening Simulation / Meditation Aid
 
 Next steps:
 
--Alternative WebGL renderer to improve performance?
++   Alternative WebGL renderer to improve performance?
