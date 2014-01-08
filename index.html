@@ -48,6 +48,11 @@
     		left:0;
     		z-index:0;
     	}
+    	#error {
+    		margin:5% auto;
+    		width:80%;
+    		color:rgb(255,255,255);
+    	}
     	#title, #game-over {
     		position:absolute;
     		display:none;
@@ -184,6 +189,7 @@
 		</style>
 	</head>
 	<body>
+		<div id="error"></div>
 		<div id="title">
 			<h1>WE ARE ALL ANGELS HERE</h1>
 			<ol>
@@ -1224,34 +1230,6 @@ function computeRank( score ) {
 
 };
 
-function printMessage( text ) {
-
-	'use strict';
-
-	var now = Date.now(),
-		i,
-		message;
-
-	for ( i = 0; i < MESSAGE_BUFFER.length; i++ ) {
-		message = MESSAGE_BUFFER[i];
-		if ( now <= message.fadeOutEnd ) {
-			message.fadeInStart = now - 1;
-			message.fadeInEnd = now - 1;
-			message.fadeOutStart = now;
-			message.fadeOutEnd = now + i * ( 1000 / MESSAGE_BUFFER.length );
-		}
-	}
-
-	MESSAGE_BUFFER.push( {
-		text : text,
-		fadeInStart : now,
-		fadeInEnd : now + 1000,
-		fadeOutStart : now + 5000,
-		fadeOutEnd : now + 7000
-	} );
-
-};
-
 function start() {
 
 	'use strict';
@@ -1280,13 +1258,23 @@ function start() {
 
 };
 
+function error( message ) {
+
+	'use strict';
+
+	window.ERROR = true;
+
+	document.getElementById( 'error' ).innerHTML = message;
+
+}
+
 function title() {
 
 	'use strict';
 
 	var gradient;
 
-	ANIMATE = false;
+	window.ANIMATE = false;
 
 	CANVAS_CONTEXT.clearRect( 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT );
 
@@ -1361,9 +1349,17 @@ function initAudio() {
 
 	var audioContext = window.AudioContext || window.webkitAudioContext || null;
 
-	window.AUDIO_CONTEXT = new audioContext;
+	try {
 
-	window.MIXER = new Mixer( window.AUDIO_CONTEXT );
+		window.AUDIO_CONTEXT = new audioContext;
+
+		window.MIXER = new Mixer( window.AUDIO_CONTEXT );
+
+	} catch ( e ) {
+
+		error( 'Your browser does not appear to support the HTML5 Web Audio API.' );
+
+	}
 
 };
 
@@ -1376,63 +1372,62 @@ function initCanvas() {
 		title = document.getElementById( 'title' ),
 		gameOver = document.getElementById( 'game-over' );
 
-	canvas = document.getElementById( 'viewport' );
+	try {
+
+		canvas = document.getElementById( 'viewport' );
+		window.CANVAS_CONTEXT = canvas.getContext( '2d' );
+
+	} catch ( e ) {
+
+		error( 'Your browser does not appear to support the HTML5 &lt;canvas&gt; element.' );
+
+	}
 
 	window.CANVAS_WIDTH = canvas.width = window.innerWidth;
 	window.CANVAS_HEIGHT = canvas.height = window.innerHeight;
-
-	window.CANVAS_CONTEXT = canvas.getContext( '2d' );
 
 	window.BACKGROUND_RED = 65;
 	window.BACKGROUND_GREEN = 115;
 	window.BACKGROUND_BLUE = 215;
 
-    CANVAS_CONTEXT.fillStyle = "rgb("
-    						 + Math.round( BACKGROUND_RED )
-    						 + ","
-    						 + Math.round( BACKGROUND_GREEN )
-    						 + ","
-    						 + Math.round( BACKGROUND_BLUE )
-    						 + ")";
+	if ( parseInt( window.innerWidth, 10 ) < 1024 || parseInt( window.innerHeight, 10 ) < 640 ) {
 
-	CANVAS_CONTEXT.fillRect( 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT );
+		error( 'WE ARE ALL ANGELS HERE requires a minimum screen size of 1024x640. Try maximizing your browser window or visiting the site on a higher-resolution device!' );
+	
+	
+	
+	} else {
 
-	gradient = CANVAS_CONTEXT.createLinearGradient( 0, CANVAS_HEIGHT, 0, 0);
-	gradient.addColorStop(1, "rgba(5,35,65,0.85)");
-	gradient.addColorStop(0, "rgba(0,0,0,0)");
+		CANVAS_CONTEXT.fillStyle = "rgb("
+								 + Math.round( BACKGROUND_RED )
+								 + ","
+								 + Math.round( BACKGROUND_GREEN )
+								 + ","
+								 + Math.round( BACKGROUND_BLUE )
+								 + ")";
 
-	// Fill with gradient
-	CANVAS_CONTEXT.fillStyle = gradient;
-	CANVAS_CONTEXT.fillRect( 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT );
+		CANVAS_CONTEXT.fillRect( 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT );
 
-	title.style.left = Math.round( ( CANVAS_WIDTH - 800 ) / 2 ) + 'px';
-	gameOver.style.left = Math.round( ( CANVAS_WIDTH - 800 ) / 2 ) + 'px';
-	title.style.top = '30px';
-	gameOver.style.top = '30px';
+		gradient = CANVAS_CONTEXT.createLinearGradient( 0, CANVAS_HEIGHT, 0, 0);
+		gradient.addColorStop(1, "rgba(5,35,65,0.85)");
+		gradient.addColorStop(0, "rgba(0,0,0,0)");
 
+		// Fill with gradient
+		CANVAS_CONTEXT.fillStyle = gradient;
+		CANVAS_CONTEXT.fillRect( 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT );
+
+		title.style.left = Math.round( ( CANVAS_WIDTH - 800 ) / 2 ) + 'px';
+		gameOver.style.left = Math.round( ( CANVAS_WIDTH - 800 ) / 2 ) + 'px';
+		title.style.top = '30px';
+		gameOver.style.top = '30px';
+
+	}
 
 };
 
 function initGame() {
 
 	MESSAGE_BUFFER = [];
-
-	MESSAGES = {};
-
-	/*MESSAGES = {
-		1 : 'WE ARE ALL ANGELS HERE',
-		3 : 'TAKE A DEEP BREATH',
-		6 : 'WE HAVE MORE POWER THAN WE THINK',
-		12 : 'PRUDENCE, DEAR',
-		23 : 'TO CREATE ONE MUST DESTROY',
-		34 : 'DO NOT ABIDE OVERPOPULATION',
-		42 : 'WE LACK RESOURCES',
-		52 : 'WE ARE SUFFOCATING',
-		60 : 'THE POPULATION IS TOO GREAT',
-		66 : 'ABORT NOW',
-		72 : 'WE MUST PURGE THE WEEDS',
-		80 : 'THE CENTER CANNOT HOLD'
-	};*/
 
 	LIVING_DANDELIONS = [];
 	LIVING_DANDELION_COUNT = 0;
@@ -1464,9 +1459,10 @@ function initGame() {
 
 	DEBUG = false;
 
-	growDandelion();
+	document.getElementById( 'title' ).style.display = 'none';
+	document.getElementById( 'game-over' ).style.display = 'none';
 
-	start();
+	growDandelion();
 
 };
 
@@ -1489,7 +1485,6 @@ function update() {
 		seeds = [],
 		seedCount = DANDELION_SEED_COUNT,
 		add = 0,
-		removeMessages = 0,
 		lastMaxAchieved;
 
 	for ( i = 0; i < livingDandelionCount; i++ ) {
@@ -1606,16 +1601,6 @@ function update() {
 		}
 	}
 
-	for ( i = 0; i < MESSAGE_BUFFER.length; i++ ) {
-		if ( now > MESSAGE_BUFFER[i].fadeOutEnd ) {
-			removeMessages++;
-		}
-	}
-
-	for ( i = 0; i < removeMessages; i++ ) {
-		MESSAGE_BUFFER.shift();
-	}
-
 	LIVING_DANDELIONS = livingDandelions;
 	LIVING_DANDELION_COUNT = livingDandelions.length;
 	DYING_DANDELIONS = dyingDandelions;
@@ -1630,12 +1615,6 @@ function update() {
 	if ( LIVING_DANDELION_COUNT > MAX_LIVING_DANDELIONS_ACHIEVED ) {
 		lastMaxAchieved = MAX_LIVING_DANDELIONS_ACHIEVED;
 		MAX_LIVING_DANDELIONS_ACHIEVED = LIVING_DANDELION_COUNT;
-		for ( i = LIVING_DANDELION_COUNT; i > lastMaxAchieved; i-- ) {
-			if ( MESSAGES.hasOwnProperty( i ) ) {
-				printMessage( MESSAGES[i] );
-				break;
-			}
-		}
 	}
 
 	for ( i = 0; i < notes.length; i++ ) {
@@ -1682,43 +1661,6 @@ function render() {
 	// Fill with gradient
 	CANVAS_CONTEXT.fillStyle = gradient;
 	CANVAS_CONTEXT.fillRect( 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT );
-
-	for ( i = 0; i < MESSAGE_BUFFER.length; i++ ) {
-
-		message = MESSAGE_BUFFER[i];
-
-		messageX = Math.round( CANVAS_WIDTH / 2 - CANVAS_WIDTH / 4 );
-		messageY = Math.round( CANVAS_HEIGHT / 2 - CANVAS_HEIGHT / 6 );
-
-		if ( now < message.fadeInEnd ) {
-			messageAlpha = 1 - ( message.fadeInEnd - now ) / ( message.fadeInEnd - message.fadeInStart );
-		} else {
-			if ( now < message.fadeOutStart ) {
-				messageAlpha = 1;
-			} else if ( now <= message.fadeOutEnd ) {
-				messageAlpha = ( message.fadeOutEnd - now ) / ( message.fadeOutEnd - message.fadeOutStart );
-			} else {
-				messageAlpha = 0;
-			}
-		}
-
-		if ( messageAlpha > 0 ) {
-
-			CANVAS_CONTEXT.font = "48pt ralewaythin";
-			CANVAS_CONTEXT.fillStyle = "rgba("
-									 + clamp( Math.round( 225 - BACKGROUND_RED ), 0, 255 )
-									 + ","
-									 + clamp( Math.round( 225 - BACKGROUND_GREEN ), 0, 255 )
-									 + ","
-									 + clamp( Math.round( 225 - BACKGROUND_BLUE ), 0, 255 )
-									 + ","
-									 + messageAlpha
-									 + ")";
-			CANVAS_CONTEXT.fillText( message.text, messageX, messageY );
-
-		}
-
-	}
 
 	BACKGROUND_RED = 65;
 	BACKGROUND_GREEN = 115;
@@ -1786,8 +1728,15 @@ window.addEventListener('touchmove', onTouchMove);
 window.addEventListener( 'resize', function() {
 	clearTimeout( window.resizeTimeout );
 	window.resizeTimeout = setTimeout( function() {
+		window.ERROR = false;
 		initCanvas();
-		title();
+		if ( !window.ERROR ) {
+			//continue as normal
+			title();
+		} else {
+			//restart the game (and show the error message)
+			initGame();
+		}
 	}, 500 );
 } );
 
@@ -1806,11 +1755,13 @@ document.getElementById( 'share-gg' ).addEventListener( 'click', function() {
 document.getElementById( 'play-button' ).addEventListener( 'click', function() {
 	document.getElementById( 'title' ).style.display  = 'none';
 	initGame();
+	start();
 }, true	);
 
 document.getElementById( 'restart-button' ).addEventListener( 'click', function() {
 	document.getElementById( 'game-over' ).style.display  = 'none';
 	initGame();
+	start();
 }, true	);
 
 
@@ -1820,14 +1771,17 @@ document.getElementById( 'restart-button' ).addEventListener( 'click', function(
  *
  */
 
-document.getElementById( 'title' ).style.display = 'block';
+ERROR = false;
 
 initCanvas();
 initAudio();
-initGame();
 
-title();
+if ( !ERROR ) {
 
+	initGame();
+	title();
+
+}
     </script>
   </body>
 </html>
