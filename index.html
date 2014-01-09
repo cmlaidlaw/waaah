@@ -828,7 +828,7 @@ Mixer = function( context ) {
 	this.compressor = context.createDynamicsCompressor();
 	this.compressor.connect( context.destination );
 
-	this.masterGain = context.createGain();
+	this.masterGain = this.createGain();
 	this.masterGain.gain.value = 0.5;
 	this.masterGain.connect( this.compressor );
 
@@ -867,16 +867,48 @@ Mixer = function( context ) {
 
 	for ( i = 0; i < 36; i++ ) {
 		note = this.notes[i];
-		this.gains[note] = context.createGain();
+		this.gains[note] = this.createGain();
 		this.gains[note].connect( this.lowPassFilter );
 		this.gains[note].gain.value = 0;
 		this.oscillators[note] = context.createOscillator();
 		this.oscillators[note].frequency.value = this.freqs[note];
 		this.oscillators[note].type = this.oscillators[note].SAWTOOTH;
-		this.oscillators[note].connect( this.gains[note] )
-		this.oscillators[note].start(0);
+		this.oscillators[note].connect( this.gains[note] );
+		this.startOscillator( this.oscillators[note] );
 		this.playing[note] = false;
 		this.fades[note] = false;
+	}
+
+};
+
+/**
+ *
+ * Polyfill for the createGain() method on the audio context since older webkit
+ * (i.e. iOS6 Safari) seems to expose something called createGainNode() instead.
+ *
+ **/
+Mixer.prototype.createGain = function() {
+
+	'use strict'
+
+	return ( typeof this.context.createGain !== 'undefined' ) ? this.context.createGain() : this.context.createGainNode();
+
+};
+
+/**
+ *
+ * Polyfill for the start() method on Oscillators since older webkit
+ * (i.e. iOS6 Safari) seem to lack it and use noteOn() instead.
+ *
+ **/
+Mixer.prototype.startOscillator = function( oscillator ) {
+
+	'use strict';
+
+	if ( typeof oscillator.start === 'function' ) {
+		oscillator.start( 0 );
+	} else if ( typeof oscillator.noteOn === 'function' ) {
+		oscillator.noteOn( 0 );
 	}
 
 };
@@ -1240,18 +1272,19 @@ function start() {
 	window.THIS_TICK = Date.now();
 
 	( function animate(){
-		if ( window.ANIMATE === true ) {
-			requestAnimFrame( animate );
-			window.FRAME++;
-			if ( LIVING_DANDELIONS.length === 0 && DYING_DANDELIONS.length === 0 ) {
+		var win = window;
+		if ( win.ANIMATE === true ) {
+			win.requestAnimFrame( animate );
+			win.FRAME++;
+			if ( win.LIVING_DANDELIONS.length === 0 && win.DYING_DANDELIONS.length === 0 ) {
 				gameOver();
 			} else {
-				if ( Date.now() - window.LAST_TICK > 10 ) {
+				if ( Date.now() - win.LAST_TICK > 10 ) {
 					update();
-					window.LAST_TICK = Date.now();
+					win.LAST_TICK = Date.now();
 				}
 			}
-			MIXER.updateNotes();
+			win.MIXER.updateNotes();
 			render();
 		}
 	} )();
@@ -1351,13 +1384,13 @@ function initAudio() {
 
 	try {
 
-		window.AUDIO_CONTEXT = new audioContext;
-
+		window.AUDIO_CONTEXT = new audioContext();
 		window.MIXER = new Mixer( window.AUDIO_CONTEXT );
 
 	} catch ( e ) {
 
 		error( 'Your browser does not appear to support the HTML5 Web Audio API. WE ARE ALL ANGELS HERE has been tested as working in recent versions of Firefox, Chrome and desktop Safari.' );
+		return false;
 
 	}
 
@@ -1380,6 +1413,7 @@ function initCanvas() {
 	} catch ( e ) {
 
 		error( 'Your browser does not appear to support the HTML5 &lt;canvas&gt; element. WE ARE ALL ANGELS HERE has been tested as working in recent versions of Firefox, Chrome and desktop Safari.' );
+		return false;
 
 	}
 
@@ -1387,16 +1421,17 @@ function initCanvas() {
 	window.CANVAS_WIDTH = canvas.width = ( window.innerWidth > 0 ) ? window.innerWidth : screen.width;
 	window.CANVAS_HEIGHT = canvas.height = ( window.innerHeight > 0 ) ? window.innerHeight : screen.height;
 
+
 	window.BACKGROUND_RED = 65;
 	window.BACKGROUND_GREEN = 115;
 	window.BACKGROUND_BLUE = 215;
 
-	if ( parseInt( window.innerWidth, 10 ) < 1024 || parseInt( window.innerHeight, 10 ) < 640 ) {
+	if ( parseInt( window.CANVAS_WIDTH, 10 ) < 960 || parseInt( window.CANVAS_HEIGHT, 10 ) < 600 ) {
 
-		error( 'WE ARE ALL ANGELS HERE requires a minimum screen size of 1024x640. Try maximizing your browser window or visiting the site on a higher-resolution device!' );
-	
-	
-	
+		error( 'WE ARE ALL ANGELS HERE requires a minimum screen size of 960x600. Try maximizing your browser window or visiting the site on a higher-resolution device!'
+			   + '<br />Your screen size: ' + window.CANVAS_WIDTH + 'x' + window.CANVAS_HEIGHT );
+		return false;
+
 	} else {
 
 		CANVAS_CONTEXT.fillStyle = "rgb("
@@ -1419,8 +1454,8 @@ function initCanvas() {
 
 		title.style.left = Math.round( ( CANVAS_WIDTH - 800 ) / 2 ) + 'px';
 		gameOver.style.left = Math.round( ( CANVAS_WIDTH - 800 ) / 2 ) + 'px';
-		title.style.top = '30px';
-		gameOver.style.top = '30px';
+		title.style.top = '20px';
+		gameOver.style.top = '20px';
 
 	}
 
@@ -1428,37 +1463,39 @@ function initCanvas() {
 
 function initGame() {
 
-	MESSAGE_BUFFER = [];
+	'use strict';
 
-	LIVING_DANDELIONS = [];
-	LIVING_DANDELION_COUNT = 0;
-	DYING_DANDELIONS = [];
-	DYING_DANDELION_COUNT = 0;
-	DANDELION_SEEDS = [];
-	DANDELION_SEED_COUNT = 0;
+	var win = window;
 
-	DANDELION_TOUCH_DISTANCE = 50;
-	DANDELION_SUFFOCATE_DISTANCE = 150;
-	DANDELION_TIME_TO_SUFFOCATE = 5000;
-	DANDELION_LIFETIME = 15000;
-	DANDELION_HEALTHY_LIFETIME = 10000;
+	win.LIVING_DANDELIONS = [];
+	win.LIVING_DANDELION_COUNT = 0;
+	win.DYING_DANDELIONS = [];
+	win.DYING_DANDELION_COUNT = 0;
+	win.DANDELION_SEEDS = [];
+	win.DANDELION_SEED_COUNT = 0;
 
-	MAX_DANDELIONS = 5;
-	MAX_DANDELION_SEEDS = 50;
+	win.DANDELION_TOUCH_DISTANCE = 50;
+	win.DANDELION_SUFFOCATE_DISTANCE = 150;
+	win.DANDELION_TIME_TO_SUFFOCATE = 5000;
+	win.DANDELION_LIFETIME = 15000;
+	win.DANDELION_HEALTHY_LIFETIME = 10000;
 
-	MAX_LIVING_DANDELIONS_ACHIEVED = 0;
-	SEEDS_RELEASED = 0;
-	CURRENT_SCORE = 0;
+	win.MAX_DANDELIONS = 5;
+	win.MAX_DANDELION_SEEDS = 50;
 
-	CURRENT_WIND = 1;
+	win.MAX_LIVING_DANDELIONS_ACHIEVED = 0;
+	win.SEEDS_RELEASED = 0;
+	win.CURRENT_SCORE = 0;
 
-	ANIMATE = false;
-	FRAME = 0;
+	win.CURRENT_WIND = 1;
 
-	MOUSE_X = 0;
-	MOUSE_Y = 0;
+	win.ANIMATE = false;
+	win.FRAME = 0;
 
-	DEBUG = false;
+	win.MOUSE_X = 0;
+	win.MOUSE_Y = 0;
+
+	win.DEBUG = false;
 
 	document.getElementById( 'title' ).style.display = 'none';
 	document.getElementById( 'game-over' ).style.display = 'none';
@@ -1713,14 +1750,18 @@ function render() {
  **/
 
 function onMouseMove( e ) {
-  window.MOUSE_X = e.clientX;
-  window.MOUSE_Y = e.clientY;
+	e.preventDefault();
+	window.MOUSE_X = e.clientX;
+	window.MOUSE_Y = e.clientY;
 }
 
 function onTouchMove( e ) {
-  e.preventDefault();
-  window.MOUSE_X = e.touches[0].clientX;
-  window.MOUSE_Y = e.touches[0].clientY - 100;
+	e.preventDefault();
+	window.MOUSE_X = clamp( e.touches[0].clientX, 0, window.CANVAS_WIDTH );
+	window.MOUSE_Y = clamp( e.touches[0].clientY, 0, window.CANVAS_HEIGHT );
+	//this other version accounts for fingers not getting in the way (on Android, maybe)
+	//but just seems broken in iOS
+	//clamp( e.touches[0].clientY - 100, 0, window.CANVAS_HEIGHT );
 }
 
 window.addEventListener('mousemove', onMouseMove);
