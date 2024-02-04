@@ -1804,6 +1804,7 @@ document.getElementById( 'share-gg' ).addEventListener( 'click', function() {
 
 document.getElementById( 'play-button' ).addEventListener( 'click', function() {
 	document.getElementById( 'title' ).style.display  = 'none';
+	initAudio();
 	initGame();
 	start();
 }, true	);
@@ -1824,7 +1825,6 @@ document.getElementById( 'restart-button' ).addEventListener( 'click', function(
 ERROR = false;
 
 initCanvas();
-initAudio();
 
 if ( !ERROR ) {
 
